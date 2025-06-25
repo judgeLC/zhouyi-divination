@@ -1,0 +1,111 @@
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"path/filepath"
+	"time"
+)
+
+// API处理函数 - 处理"今日卦象"请求
+func handleDivineRequest(w http.ResponseWriter, r *http.Request) {
+	// 1. 打印请求体 (可选，但有助于调试)
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "无法读取请求体", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close() // 确保关闭请求体，避免资源泄漏
+	fmt.Printf("Request Body: %s\n", string(bodyBytes))
+
+	var req DivineRequest
+	decoder := json.NewDecoder(io.NopCloser(bytes.NewBuffer(bodyBytes))) // 使用 io.NopCloser 避免重复关闭
+
+	// 2. JSON 解码和错误处理
+	err = decoder.Decode(&req)
+	if err != nil {
+		// 更细致的错误处理，根据错误类型返回不同的 HTTP 状态码
+		switch {
+		case err == io.EOF:
+			http.Error(w, "请求体为空", http.StatusBadRequest)
+		case err.(*json.SyntaxError) != nil:
+			http.Error(w, fmt.Sprintf("JSON 语法错误: %s", err), http.StatusBadRequest)
+		case err.(*json.UnmarshalTypeError) != nil:
+			http.Error(w, fmt.Sprintf("类型不匹配: %s", err), http.StatusBadRequest)
+		default:
+			log.Printf("JSON 解码错误: %v", err) // 记录错误到日志
+			http.Error(w, "服务器内部错误", http.StatusInternalServerError)
+		}
+		return
+	}
+	fmt.Printf("Received request body: %+v\n", req) // 打印解码后的数据
+
+	// 生成卦象图片
+	imagePath, err := generateTodayGua()
+	if err != nil {
+		http.Error(w, "生成卦象失败: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// 创建响应
+	now := time.Now()
+	response := ApiResponse{
+		Code:    200,
+		Message: "成功",
+		Data: DivineResult{
+			ID:        fmt.Sprintf("divine_%d", now.UnixNano()),
+			Date:      now.Format("2006-01-02"),
+			ImagePath: imagePath,
+			CreatedAt: now.Unix(),
+		},
+	}
+
+	// 设置响应头
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+// 新增API路由处理
+func setupAPIRoutes() {
+	http.HandleFunc("/api/divine", handleDivineRequest)
+}
+
+// 提供图像访问
+func serveImageFiles() {
+	photosDir := filepath.Join(getCurrentDir(), "photos")
+	if err := ensureDir(photosDir); err == nil {
+		fs := http.FileServer(http.Dir(photosDir))
+		http.Handle("/photos/", http.StripPrefix("/photos/", fs))
+	}
+
+	outputDir := filepath.Join(getCurrentDir(), "output")
+	if err := ensureDir(outputDir); err == nil {
+		fs := http.FileServer(http.Dir(outputDir))
+		http.Handle("/output/", http.StripPrefix("/output/", fs))
+	}
+}
+
+// 启动HTTP服务器
+func startServer() {
+	// 设置API路由
+	setupAPIRoutes()
+
+	// 提供图像文件访问
+	serveImageFiles()
+
+	// 启动HTTP服务器
+	port := "8090"
+	log.Printf("启动HTTP服务器，监听端口 %s...", port)
+	log.Printf("API接口路径: http://localhost:%s/api/divine", port)
+
+	// 启动HTTP服务器
+	err := http.ListenAndServe(":"+port, nil)
+	if err != nil {
+		log.Fatalf("启动HTTP服务器失败: %v", err)
+	}
+}
