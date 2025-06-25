@@ -9,6 +9,11 @@ func main() {
 	// 初始化日志系统
 	initLoggerSimple()
 
+	// 初始化配置
+	if err := initConfig(); err != nil {
+		log.Fatalf("配置初始化失败: %v", err)
+	}
+
 	// 预热缓存
 	var wg sync.WaitGroup
 	wg.Add(2)

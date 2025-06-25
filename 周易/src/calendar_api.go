@@ -33,8 +33,12 @@ func getRiGanAndCalendarInfo() (string, string, string, error) {
 		Timeout: 5 * time.Second,
 	}
 
+	// 从配置文件获取API设置
+	config := GetConfig()
+
 	// 构建 API URL
-	apiURL := fmt.Sprintf("http://101.35.2.25/api/time/getday.php?id=10005598&key=12345678910&nian=%d&yue=%d&ri=%d", year, month, day)
+	apiURL := fmt.Sprintf("%s/api/time/getday.php?id=%s&key=%s&nian=%d&yue=%d&ri=%d",
+		config.Calendar.APIHost, config.Calendar.ID, config.Calendar.Key, year, month, day)
 
 	// 调用 API 接口
 	resp, err := client.Get(apiURL)

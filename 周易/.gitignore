@@ -1,0 +1,51 @@
+# 可执行文件
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 日志文件
+src/log/
+*.log
+
+# 缓存文件
+src/cache/
+*.cache
+
+# 输出文件
+src/output/
+
+# 生成的图片
+src/photos/
+*.png
+*.jpg
+*.jpeg
+
+# 测试文件
+*test*
+test_*
+*_test.go
+
+# 临时文件
+*.tmp
+*.temp
+*~
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Go 编译相关
+*.a
+*.o
+*.so
+
+# Windows资源文件 (保留这个是为了图标)
+# rsrc_windows_amd64.syso 

@@ -98,8 +98,9 @@ func startServer() {
 	// 提供图像文件访问
 	serveImageFiles()
 
-	// 启动HTTP服务器
-	port := "8090"
+	// 从配置文件获取端口
+	config := GetConfig()
+	port := config.Server.Port
 	log.Printf("启动HTTP服务器，监听端口 %s...", port)
 	log.Printf("API接口路径: http://localhost:%s/api/divine", port)
 

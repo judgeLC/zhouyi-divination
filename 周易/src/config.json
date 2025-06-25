@@ -1,0 +1,10 @@
+{
+    "server": {
+        "port": "8090"
+    },
+    "calendar": {
+        "api_host": "https://cn.apihz.cn",
+        "id": "88888888",
+        "key": "88888888"
+    }
+} 
