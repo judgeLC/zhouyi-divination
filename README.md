@@ -30,8 +30,6 @@ goproject/
 │   │   ├── log/            # 日志目录 (运行时生成)
 │   │   ├── output/         # 输出目录 (运行时生成)
 │   │   └── photos/         # 生成的卦图目录 (运行时生成)
-│   └── ttf/                # 额外字体文件目录
-│       └── simkai.ttf
 └── .gitignore             # Git忽略文件配置
 ```
 
