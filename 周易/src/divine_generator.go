@@ -13,6 +13,16 @@ import (
 
 // 新增：生成今日卦象并返回图像路径
 func generateTodayGua() (string, error) {
+	// 获取信号量，限制并发图片生成数量
+	imageGenerationSem <- struct{}{}
+	defer func() { <-imageGenerationSem }()
+
+	// 加锁保证图片生成过程的串行化，防止并发冲突
+	imageGenerationMutex.Lock()
+	defer imageGenerationMutex.Unlock()
+
+	log.Printf("开始生成卦象图片...")
+
 	// 获取日干和万年历信息
 	ganzhiri, ganzhinian, ganzhiyue, err := getRiGanAndCalendarInfo()
 	if err != nil {
@@ -82,6 +92,7 @@ func generateTodayGua() (string, error) {
 		log.Printf("无动爻，无变卦")
 	}
 
+	log.Printf("卦象图片生成完成: %s", savePath)
 	return savePath, nil
 }
 

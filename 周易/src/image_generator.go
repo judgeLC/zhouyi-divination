@@ -356,7 +356,7 @@ func drawWrappedText(img *image.NRGBA, text string, x, y, maxWidth, lineHeight i
 	return currentY
 }
 
-// 保存图像到指定路径 - 修正版本
+// 保存图像到指定路径 - 修正版本，确保图片完全写入
 func saveImageToPathFixed(img *image.NRGBA, fileName string) (string, error) {
 	// 优先保存到photos目录
 	photosDir := filepath.Join(getCurrentDir(), "photos")
@@ -376,8 +376,29 @@ func saveImageToPathFixed(img *image.NRGBA, fileName string) (string, error) {
 	log.Printf("正在保存图像到: %s", fullPath)
 	err := imaging.Save(img, fullPath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("保存图像失败: %v", err)
 	}
+
+	// 确保文件完全写入磁盘
+	// 检查文件是否存在且大小合理
+	if !fileExists(fullPath) {
+		return "", fmt.Errorf("图片保存后文件不存在: %s", fullPath)
+	}
+
+	// 获取文件信息，确保文件大小合理
+	fileInfo, err := os.Stat(fullPath)
+	if err != nil {
+		return "", fmt.Errorf("无法获取保存文件信息: %v", err)
+	}
+
+	// 检查文件大小是否合理（至少10KB，避免空文件或损坏文件）
+	if fileInfo.Size() < 10*1024 {
+		// 删除可能损坏的文件
+		os.Remove(fullPath)
+		return "", fmt.Errorf("生成的图片文件过小，可能未完全渲染: %d bytes", fileInfo.Size())
+	}
+
+	log.Printf("图片保存成功，文件大小: %d bytes", fileInfo.Size())
 
 	// 返回用于HTTP访问的相对路径
 	// 确定是保存在photos还是output目录

@@ -46,6 +46,13 @@ var (
 	calendarCacheMutex sync.RWMutex                                                          // 万年历缓存读写锁，保证并发安全
 )
 
+// 图片生成并发控制变量
+// 防止高并发情况下图片生成冲突和资源竞争，确保图片渲染完整性
+var (
+	imageGenerationMutex sync.Mutex                             // 图片生成互斥锁，确保图片生成过程串行化
+	imageGenerationSem   chan struct{} = make(chan struct{}, 3) // 图片生成信号量，限制最大并发数为3
+)
+
 // getGlobalRand 获取全局随机数生成器
 // 使用单例模式，确保整个程序使用同一个随机数生成器
 // 基于当前纳秒时间戳作为种子，保证随机性
