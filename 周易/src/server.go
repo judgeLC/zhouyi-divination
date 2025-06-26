@@ -51,18 +51,28 @@ func handleDivineRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 构建完整的图片URL
+	config := GetConfig()
+	port := config.Server.Port
+	fullImageURL := fmt.Sprintf("http://localhost:%s/%s", port, imagePath)
+
 	// 创建响应
 	now := time.Now()
+	divineResult := DivineResult{
+		ID:        fmt.Sprintf("divine_%d", now.UnixNano()),
+		Date:      now.Format("2006-01-02"),
+		ImagePath: fullImageURL, // 返回完整的图片URL
+		CreatedAt: now.Unix(),
+	}
+
 	response := ApiResponse{
 		Code:    200,
 		Message: "成功",
-		Data: DivineResult{
-			ID:        fmt.Sprintf("divine_%d", now.UnixNano()),
-			Date:      now.Format("2006-01-02"),
-			ImagePath: imagePath,
-			CreatedAt: now.Unix(),
-		},
+		Data:    divineResult,
 	}
+
+	// 广播到WebSocket客户端
+	BroadcastMessage(WSEventDivine, divineResult)
 
 	// 设置响应头
 	w.Header().Set("Content-Type", "application/json")
@@ -73,6 +83,14 @@ func handleDivineRequest(w http.ResponseWriter, r *http.Request) {
 // 新增API路由处理
 func setupAPIRoutes() {
 	http.HandleFunc("/api/divine", handleDivineRequest)
+	http.HandleFunc("/ws", handleWSConnection)        // WebSocket连接端点
+	http.HandleFunc("/api/ws/status", handleWSStatus) // WebSocket状态查询
+	http.HandleFunc("/test", serveWebSocketTestPage)  // WebSocket测试页面
+}
+
+// 提供WebSocket测试页面
+func serveWebSocketTestPage(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "websocket_test.html")
 }
 
 // 提供图像访问
@@ -92,6 +110,9 @@ func serveImageFiles() {
 
 // 启动HTTP服务器
 func startServer() {
+	// 初始化WebSocket管理器
+	initWSManager()
+
 	// 设置API路由
 	setupAPIRoutes()
 
@@ -103,6 +124,9 @@ func startServer() {
 	port := config.Server.Port
 	log.Printf("启动HTTP服务器，监听端口 %s...", port)
 	log.Printf("API接口路径: http://localhost:%s/api/divine", port)
+	log.Printf("WebSocket接口路径: ws://localhost:%s/ws", port)
+	log.Printf("WebSocket状态查询: http://localhost:%s/api/ws/status", port)
+	log.Printf("WebSocket测试页面: http://localhost:%s/test", port)
 
 	// 启动HTTP服务器
 	err := http.ListenAndServe(":"+port, nil)

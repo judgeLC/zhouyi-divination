@@ -358,39 +358,34 @@ func drawWrappedText(img *image.NRGBA, text string, x, y, maxWidth, lineHeight i
 
 // 保存图像到指定路径 - 修正版本
 func saveImageToPathFixed(img *image.NRGBA, fileName string) (string, error) {
-	// 尝试多个可能的保存位置
-	possibleDirs := []string{
-		filepath.Join(getCurrentDir(), "photos"),
-		filepath.Join(getCurrentDir(), "output"),
-		getCurrentDir(),
-		".",
-		"./photos",
-		"./output",
-	}
-
-	// 确保至少一个目录存在
-	var savePath string
-	var dirExists bool
-	for _, dir := range possibleDirs {
-		if err := ensureDir(dir); err == nil {
-			savePath = filepath.Join(dir, fileName)
-			dirExists = true
-			break
+	// 优先保存到photos目录
+	photosDir := filepath.Join(getCurrentDir(), "photos")
+	if err := ensureDir(photosDir); err != nil {
+		// 如果photos目录创建失败，尝试output目录
+		outputDir := filepath.Join(getCurrentDir(), "output")
+		if err := ensureDir(outputDir); err != nil {
+			return "", fmt.Errorf("无法创建保存目录: %v", err)
 		}
+		photosDir = outputDir
 	}
 
-	if !dirExists {
-		return "", fmt.Errorf("无法创建任何保存目录")
-	}
+	// 完整的文件系统路径
+	fullPath := filepath.Join(photosDir, fileName)
 
 	// 保存图像
-	log.Printf("正在保存图像到: %s", savePath)
-	err := imaging.Save(img, savePath)
+	log.Printf("正在保存图像到: %s", fullPath)
+	err := imaging.Save(img, fullPath)
 	if err != nil {
 		return "", err
 	}
 
-	return savePath, nil
+	// 返回用于HTTP访问的相对路径
+	// 确定是保存在photos还是output目录
+	baseDir := filepath.Base(photosDir)
+	relativePath := baseDir + "/" + fileName
+
+	log.Printf("返回相对路径: %s", relativePath)
+	return relativePath, nil
 }
 
 // 创建字体面

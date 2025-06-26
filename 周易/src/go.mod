@@ -6,6 +6,7 @@ toolchain go1.23.10
 
 require (
 	github.com/disintegration/imaging v1.6.2
+	github.com/gorilla/websocket v1.5.3
 	golang.org/x/image v0.28.0
 )
 
