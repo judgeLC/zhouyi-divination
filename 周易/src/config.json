@@ -6,5 +6,10 @@
         "api_host": "https://cn.apihz.cn",
         "id": "88888888",
         "key": "88888888"
+    },
+    "cleanup": {
+        "enabled": true,
+        "max_age": 24,
+        "clean_on_start": true
     }
 } 

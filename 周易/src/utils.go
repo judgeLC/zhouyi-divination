@@ -233,3 +233,113 @@ func initLoggerSimple() {
 
 	log.Printf("日志系统初始化成功，日志保存到: %s", logPath)
 }
+
+// cleanupPhotosFolder 清理photos目录中的过期文件
+// 根据配置删除超过指定时间的图片文件，防止磁盘空间无限增长
+//
+// 参数：
+//   - maxAgeHours: 文件最大保存时间（小时），超过此时间的文件将被删除
+//
+// 返回值：成功删除的文件数量和错误信息
+func cleanupPhotosFolder(maxAgeHours int) (int, error) {
+	if maxAgeHours <= 0 {
+		log.Printf("清理功能已禁用或最大保存时间无效: %d小时", maxAgeHours)
+		return 0, nil
+	}
+
+	// 获取photos目录路径
+	photosDir := filepath.Join(getCurrentDir(), "photos")
+	if !fileExists(photosDir) {
+		log.Printf("photos目录不存在，无需清理: %s", photosDir)
+		return 0, nil
+	}
+
+	// 计算过期时间点
+	cutoffTime := time.Now().Add(-time.Duration(maxAgeHours) * time.Hour)
+	log.Printf("开始清理photos目录，删除 %s 之前的文件", cutoffTime.Format("2006-01-02 15:04:05"))
+
+	// 遍历photos目录
+	files, err := os.ReadDir(photosDir)
+	if err != nil {
+		return 0, fmt.Errorf("读取photos目录失败: %v", err)
+	}
+
+	deletedCount := 0
+	for _, file := range files {
+		if file.IsDir() {
+			continue // 跳过子目录
+		}
+
+		filePath := filepath.Join(photosDir, file.Name())
+
+		// 获取文件信息
+		fileInfo, err := os.Stat(filePath)
+		if err != nil {
+			log.Printf("获取文件信息失败: %s, 错误: %v", filePath, err)
+			continue
+		}
+
+		// 检查文件修改时间是否超过保存期限
+		if fileInfo.ModTime().Before(cutoffTime) {
+			// 删除过期文件
+			if err := os.Remove(filePath); err != nil {
+				log.Printf("删除过期文件失败: %s, 错误: %v", filePath, err)
+			} else {
+				log.Printf("已删除过期文件: %s (修改时间: %s)",
+					file.Name(), fileInfo.ModTime().Format("2006-01-02 15:04:05"))
+				deletedCount++
+			}
+		}
+	}
+
+	log.Printf("清理完成，共删除 %d 个过期文件", deletedCount)
+	return deletedCount, nil
+}
+
+// autoCleanupPhotos 根据配置自动清理photos目录
+// 检查配置是否启用清理功能，如果启用则执行清理操作
+//
+// 返回值：成功删除的文件数量和错误信息
+func autoCleanupPhotos() (int, error) {
+	config := GetConfig()
+
+	// 检查是否启用自动清理功能
+	if !config.Cleanup.Enabled {
+		log.Printf("自动清理功能已禁用")
+		return 0, nil
+	}
+
+	// 执行清理操作
+	return cleanupPhotosFolder(config.Cleanup.MaxAge)
+}
+
+// startPeriodicCleanup 启动定期清理goroutine
+// 每小时检查一次是否需要执行清理操作
+func startPeriodicCleanup() {
+	config := GetConfig()
+
+	// 如果未启用清理功能，直接返回
+	if !config.Cleanup.Enabled {
+		return
+	}
+
+	go func() {
+		// 创建定时器，每小时执行一次清理检查
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+
+		log.Printf("定期清理任务已启动，每小时检查一次")
+
+		for {
+			select {
+			case <-ticker.C:
+				// 执行清理操作
+				if count, err := autoCleanupPhotos(); err != nil {
+					log.Printf("定期清理执行失败: %v", err)
+				} else if count > 0 {
+					log.Printf("定期清理完成，删除了 %d 个文件", count)
+				}
+			}
+		}
+	}()
+}

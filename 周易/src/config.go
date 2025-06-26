@@ -11,10 +11,11 @@ import (
 )
 
 // Config 应用程序主配置结构体
-// 包含服务器配置和万年历API配置两个主要部分
+// 包含服务器配置、万年历API配置和文件清理配置三个主要部分
 type Config struct {
 	Server   ServerConfig   `json:"server"`   // HTTP服务器相关配置
 	Calendar CalendarConfig `json:"calendar"` // 万年历API相关配置
+	Cleanup  CleanupConfig  `json:"cleanup"`  // 文件清理相关配置
 }
 
 // ServerConfig HTTP服务器配置结构体
@@ -31,6 +32,14 @@ type CalendarConfig struct {
 	Key     string `json:"key"`      // API访问密钥，用于身份认证
 }
 
+// CleanupConfig 文件清理配置结构体
+// 用于自动清理photos目录中的过期图片文件
+type CleanupConfig struct {
+	Enabled      bool `json:"enabled"`        // 是否启用自动清理功能
+	MaxAge       int  `json:"max_age"`        // 文件最大保存时间（小时），超过此时间的文件将被删除
+	CleanOnStart bool `json:"clean_on_start"` // 是否在程序启动时执行一次清理
+}
+
 // appConfig 全局配置变量，存储当前应用程序的配置信息
 // 通过initConfig()函数初始化，通过GetConfig()函数获取
 var appConfig *Config
@@ -41,6 +50,7 @@ var appConfig *Config
 // 默认配置说明：
 // - 服务器端口：8090
 // - 万年历API：使用测试API地址和默认密钥
+// - 文件清理：默认启用，保存24小时，启动时清理
 //
 // 返回值：包含默认设置的Config结构体指针
 func getDefaultConfig() *Config {
@@ -52,6 +62,11 @@ func getDefaultConfig() *Config {
 			APIHost: "https://cn.apihz.cn", // 万年历API服务地址
 			ID:      "88888888",            // 测试用API ID
 			Key:     "88888888",            // 测试用API密钥
+		},
+		Cleanup: CleanupConfig{
+			Enabled:      true, // 默认启用自动清理
+			MaxAge:       24,   // 默认保存24小时
+			CleanOnStart: true, // 默认启动时执行清理
 		},
 	}
 }
@@ -173,6 +188,11 @@ func validateConfig(config *Config) error {
 	// 验证万年历API访问密钥
 	if config.Calendar.Key == "" {
 		return fmt.Errorf("万年历API密钥不能为空")
+	}
+
+	// 验证文件清理配置
+	if config.Cleanup.MaxAge < 0 {
+		return fmt.Errorf("文件最大保存时间不能为负数")
 	}
 
 	return nil

@@ -68,6 +68,21 @@ func main() {
 	wg.Wait()
 	log.Printf("系统预热完成，所有缓存资源已就绪")
 
+	// 启动时清理photos目录（如果配置启用）
+	config := GetConfig()
+	if config.Cleanup.Enabled && config.Cleanup.CleanOnStart {
+		if count, err := autoCleanupPhotos(); err != nil {
+			log.Printf("启动时清理失败: %v", err)
+		} else if count > 0 {
+			log.Printf("启动时清理完成，删除了 %d 个过期文件", count)
+		} else {
+			log.Printf("启动时清理完成，没有发现过期文件")
+		}
+	}
+
+	// 启动定期清理任务
+	startPeriodicCleanup()
+
 	// 启动HTTP服务器
 	// 包括API路由设置、WebSocket服务初始化、静态文件服务等
 	startServer()
