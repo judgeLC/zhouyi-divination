@@ -11,8 +11,9 @@
 - 干支纪年月日信息获取
 - 爻辞查询和显示
 - 动爻变卦处理
+- OneBot v11协议支持，可集成聊天机器人
 
-系统提供HTTP API接口和WebSocket实时通信两种方式，支持多用户并发使用，适合学习传统易学理论或进行占卜娱乐。
+系统提供HTTP API接口、WebSocket实时通信和OneBot协议三种接入方式，支持多用户并发使用，适合学习传统易学理论、进行占卜娱乐或集成到聊天机器人中。
 
 ## 技术说明
 
@@ -35,6 +36,8 @@ goproject/
 │       ├── image_generator.go   # 卦象图片生成
 │       ├── calendar_api.go      # 万年历API调用
 │       ├── websocket.go         # WebSocket通信处理
+│       ├── onebot_types.go      # OneBot协议类型定义
+│       ├── onebot_handler.go    # OneBot协议处理器
 │       ├── utils.go             # 工具函数
 │       ├── config.json          # 配置文件
 │       ├── go.mod               # Go模块依赖
@@ -45,7 +48,7 @@ goproject/
 │       ├── output/              # 输出文件目录
 │       └── log/                 # 日志文件目录
 ├── API接口文档.md               # API接口详细说明
-├── 配置说明.md                 # 配置文件说明
+├── 周易项目开发文档.md         # 项目开发文档
 └── README.md                   # 项目说明文档
 ```
 
@@ -89,6 +92,11 @@ goproject/
 - **功能**: 查询当前WebSocket连接状态
 - **响应**: 返回当前活跃连接数等信息
 
+**OneBot状态查询**
+- **URL**: `GET /api/onebot/status`
+- **功能**: 查询OneBot连接状态和统计信息
+- **响应**: 返回OneBot服务状态、连接数、统计数据等
+
 **静态文件访问**
 - **卦象图片**: `GET /photos/{filename}`
 - **输出文件**: `GET /output/{filename}`
@@ -105,6 +113,21 @@ goproject/
 - `error`: 错误信息
 
 **测试页面**: `http://localhost:8090/test`
+
+#### OneBot协议接口
+
+**连接地址**: `ws://localhost:8090/onebot/ws`
+
+**协议标准**: OneBot v11
+
+**支持功能**:
+- 标准OneBot动作（get_login_info、get_status、send_msg等）
+- 生命周期事件和心跳事件
+- 消息段支持（text、image、at、reply）
+- 多客户端并发连接
+- 统计信息收集
+
+**测试页面**: `http://localhost:8090/onebot/test`
 
 ### 万年历API说明
 
@@ -228,4 +251,67 @@ go build -o Yijing.exe
 1. **端口占用**: 修改config.json中的端口配置
 2. **字体缺失**: 确保ttf目录下有字体文件，或系统有中文字体
 3. **万年历API失败**: 检查网络连接和API配置，系统会使用默认值继续运行
-4. **图片生成失败**: 检查photos目录权限，确保程序有写入权限 
+4. **图片生成失败**: 检查photos目录权限，确保程序有写入权限
+
+## 文档导航
+
+### 核心文档
+
+- **[API接口文档](API接口文档.md)**: 详细的HTTP API和WebSocket接口说明
+- **[OneBot协议说明](周易/src/OneBot协议说明.md)**: OneBot v11协议完整实现文档
+- **[WebSocket接口说明](周易/src/WebSocket接口说明.md)**: WebSocket通信协议详解
+- **[项目开发文档](周易项目开发文档.md)**: 完整的开发和实现文档
+
+### 配置文档
+
+- **[配置说明](周易/src/配置说明.md)**: 系统配置参数详解
+- **[万年历API说明](周易/src/万年历API说明.txt)**: 万年历接口使用指南
+
+### 功能特性
+
+#### 传统易学功能
+- 完整的六爻占卜算法
+- 64卦卦象识别和解析
+- 纳甲理论和六神安排
+- 卦象图片自动生成
+- 爻辞查询和动变卦处理
+
+#### 现代化接口
+- RESTful HTTP API
+- WebSocket实时通信
+- OneBot v11协议支持
+- 多平台兼容性
+
+#### 技术特点
+- Go语言高性能实现
+- 并发安全设计
+- 内存缓存优化
+- 完整的错误处理
+- 详细的日志记录
+
+## 快速开始
+
+1. **克隆项目**
+   ```bash
+   git clone https://github.com/judgeLC/zhouyi-divination.git
+   cd zhouyi-divination/周易/src
+   ```
+
+2. **安装依赖**
+   ```bash
+   go mod tidy
+   ```
+
+3. **运行程序**
+   ```bash
+   go run main.go
+   ```
+
+4. **测试功能**
+   - 访问 http://localhost:8080/test 测试WebSocket
+   - 访问 http://localhost:8080/onebot/test 测试OneBot
+   - 调用 POST http://localhost:8080/api/divine 进行占卜
+
+## 许可证
+
+本项目采用开源许可证发布，欢迎学习和使用。 
