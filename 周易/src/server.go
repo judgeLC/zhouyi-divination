@@ -83,14 +83,40 @@ func handleDivineRequest(w http.ResponseWriter, r *http.Request) {
 // 新增API路由处理
 func setupAPIRoutes() {
 	http.HandleFunc("/api/divine", handleDivineRequest)
-	http.HandleFunc("/ws", handleWSConnection)        // WebSocket连接端点
-	http.HandleFunc("/api/ws/status", handleWSStatus) // WebSocket状态查询
-	http.HandleFunc("/test", serveWebSocketTestPage)  // WebSocket测试页面
+	http.HandleFunc("/ws", handleWSConnection)                // WebSocket连接端点
+	http.HandleFunc("/onebot/ws", handleOneBotWSConnection)   // OneBot WebSocket连接端点
+	http.HandleFunc("/api/ws/status", handleWSStatus)         // WebSocket状态查询
+	http.HandleFunc("/api/onebot/status", handleOneBotStatus) // OneBot状态查询
+	http.HandleFunc("/test", serveWebSocketTestPage)          // WebSocket测试页面
+	http.HandleFunc("/onebot/test", serveOneBotTestPage)      // OneBot测试页面
 }
 
 // 提供WebSocket测试页面
 func serveWebSocketTestPage(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "websocket_test.html")
+}
+
+// 提供OneBot测试页面
+func serveOneBotTestPage(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "onebot_test.html")
+}
+
+// OneBot状态API
+func handleOneBotStatus(w http.ResponseWriter, r *http.Request) {
+	status := map[string]interface{}{
+		"connected_clients": GetOneBotClientsCount(),
+		"server_time":       time.Now().Unix(),
+		"onebot_enabled":    true,
+		"onebot_version":    OneBotVersion,
+		"implementation":    OneBotImpl,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(ApiResponse{
+		Code:    200,
+		Message: "成功",
+		Data:    status,
+	})
 }
 
 // 提供图像访问
@@ -113,6 +139,9 @@ func startServer() {
 	// 初始化WebSocket管理器
 	initWSManager()
 
+	// 初始化OneBot管理器
+	initOneBotManager()
+
 	// 设置API路由
 	setupAPIRoutes()
 
@@ -125,8 +154,11 @@ func startServer() {
 	log.Printf("启动HTTP服务器，监听端口 %s...", port)
 	log.Printf("API接口路径: http://localhost:%s/api/divine", port)
 	log.Printf("WebSocket接口路径: ws://localhost:%s/ws", port)
+	log.Printf("OneBot WebSocket接口路径: ws://localhost:%s/onebot/ws", port)
 	log.Printf("WebSocket状态查询: http://localhost:%s/api/ws/status", port)
+	log.Printf("OneBot状态查询: http://localhost:%s/api/onebot/status", port)
 	log.Printf("WebSocket测试页面: http://localhost:%s/test", port)
+	log.Printf("OneBot测试页面: http://localhost:%s/onebot/test", port)
 
 	// 启动HTTP服务器
 	err := http.ListenAndServe(":"+port, nil)

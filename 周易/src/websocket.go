@@ -161,6 +161,42 @@ func handleWSConnection(w http.ResponseWriter, r *http.Request) {
 	go client.readPump()
 }
 
+// OneBot WebSocket连接处理器
+func handleOneBotWSConnection(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("OneBot WebSocket升级失败: %v", err)
+		return
+	}
+
+	// 生成客户端ID
+	clientID := fmt.Sprintf("onebot_%d", time.Now().UnixNano())
+
+	// 创建基础WebSocket客户端
+	wsClient := &WSClient{
+		ID:   clientID,
+		Conn: conn,
+		Send: make(chan WSMessage, 256),
+	}
+
+	// 创建OneBot客户端（使用默认机器人ID）
+	oneBotClient := NewOneBotClient(wsClient, 12345678)
+
+	// 注册到OneBot管理器
+	if oneBotManager != nil {
+		oneBotManager.clients[clientID] = oneBotClient
+	}
+
+	log.Printf("OneBot客户端已连接: %s, BotId: %d", clientID, oneBotClient.BotId)
+
+	// 发送连接生命周期事件
+	oneBotClient.SendLifecycleEvent("connect")
+
+	// 启动协程处理OneBot消息
+	go oneBotClient.readOneBotPump()
+	go oneBotClient.writeOneBotPump()
+}
+
 // 读取消息
 func (c *WSClient) readPump() {
 	defer func() {
